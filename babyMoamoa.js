@@ -13,31 +13,30 @@ class BabyMoamoa {
       baseRadius: 80,
       spring: 0.21,
       friction: 0.72,
-      color: [120, 180, 255]
+      color: [186, 176, 255] // 淡パープル #bab0ff
     };
-    this.touchRipples = []; // タッチ波紋
+    this.touchRipples = [];
     this.isLongPress = false;
     this.longPressTimer = null;
-    this.time = 0; // 時間管理を最適化
-    this.hasTouched = false; // タッチしたかどうかのフラグ
-    
-    // 粒子構成のモワモワ
+    this.time = 0;
+    this.hasTouched = false;
+
+    // パープル粒子
     this.particles = [];
-    this.numParticles = 200; // 粒子数
+    this.numParticles = 68;
     this.initParticles();
+
     this.resize();
     window.addEventListener('resize', () => this.resize());
-    // タッチ＆マウス押下
     this.canvas.addEventListener('pointerdown', e => this.startLongPress(e));
     this.canvas.addEventListener('pointerup', e => this.endLongPress(e));
     this.canvas.addEventListener('pointerleave', e => this.endLongPress(e));
     this.canvas.addEventListener('pointermove', e => this.handlePointer(e));
-    // マルチタッチ追従
     this.canvas.addEventListener('touchmove', e => {
       for(const t of e.touches) this.handlePointer(t);
     }, {passive: false});
 
-    this.setupMic(); // 常時マイクON
+    this.setupMic();
     this.animate();
   }
   resize() {
@@ -45,19 +44,16 @@ class BabyMoamoa {
     this.canvas.height = window.innerHeight;
     this.moamoa.cx = window.innerWidth / 2;
     this.moamoa.cy = window.innerHeight / 2;
-    this.initParticles(); // リサイズ時に粒子を再初期化
+    this.initParticles();
   }
-  
   initParticles() {
     this.particles = [];
     const cx = this.moamoa.cx;
     const cy = this.moamoa.cy;
     const radius = this.moamoa.displayRadius;
-    
     for (let i = 0; i < this.numParticles; i++) {
       const angle = (Math.PI * 2 * i) / this.numParticles;
-      const r = radius * (0.8 + Math.random() * 0.4); // 半径にランダム性
-      
+      const r = radius * (0.8 + Math.random() * 0.4);
       this.particles.push({
         x: cx + Math.cos(angle) * r,
         y: cy + Math.sin(angle) * r,
@@ -65,121 +61,108 @@ class BabyMoamoa {
         targetY: cy + Math.sin(angle) * r,
         vx: 0,
         vy: 0,
-        size: 2 + Math.random() * 3,
+        size: 2.8 + Math.random() * 3.2,
         angle: angle,
         baseRadius: r,
-        spring: 0.1 + Math.random() * 0.1,
-        friction: 0.8 + Math.random() * 0.1
+        spring: 0.11 + Math.random() * 0.08,
+        friction: 0.81 + Math.random() * 0.1
       });
     }
   }
   async setupMic() {
     try {
-      // AudioContextの初期化を改善
       this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      
-      // ユーザーインタラクション後にAudioContextを開始
       const startAudio = async () => {
         if (this.audioCtx.state === 'suspended') {
           await this.audioCtx.resume();
         }
       };
-      
-      // タッチやクリックでAudioContextを開始
       this.canvas.addEventListener('pointerdown', startAudio, { once: true });
-      
+
       this.analyser = this.audioCtx.createAnalyser();
       this.analyser.fftSize = 512;
       this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
-      
       let stream = await navigator.mediaDevices.getUserMedia({audio:true});
       let src = this.audioCtx.createMediaStreamSource(stream);
       src.connect(this.analyser);
-      
-      this.status.textContent = "音や声＋タッチ・スワイプ 両方でモワモワが動くよ！";
-      console.log("マイク接続成功");
+
+      this.status.textContent = "音＋タッチ&スワイプでやさしいもわもわ遊び!";
     } catch (error) {
-      console.error("マイク接続エラー:", error);
-      this.status.textContent = "マイク許可がありません（タッチ・スワイプのみ反応します）";
+      this.status.textContent = "マイク許可なし（タッチ&スワイプのみ反応）";
     }
   }
   animate() {
-    this.time += 16; // 約60fps
+    this.time += 16;
     requestAnimationFrame(() => this.animate());
     this.draw();
   }
   draw() {
     const ctx = this.ctx, w = this.canvas.width, h = this.canvas.height;
     ctx.clearRect(0,0,w,h);
-    
-    // 音声レベル取得
+
+    // 音声反応
     let vol = 0;
     if (this.analyser && this.dataArray && this.audioCtx && this.audioCtx.state === 'running') {
-      try {
-        this.analyser.getByteFrequencyData(this.dataArray);
-        let sum = 0;
-        for(let x=0; x<this.dataArray.length; ++x) sum += this.dataArray[x];
-        vol = sum / this.dataArray.length / 255;
-        
-        // 音声レベルを視覚的に表示（デバッグ用）
-        if (vol > 0.1) {
-          console.log("音声レベル:", vol.toFixed(3));
-        }
-        
-        // モワモワに（バネ物理＋イージング）
-        const target = this.moamoa.baseRadius + vol*150;
-        const dy = target - this.moamoa.displayRadius;
-        this.moamoa.vy += dy * this.moamoa.spring;
-        this.moamoa.vy *= this.moamoa.friction;
-        this.moamoa.displayRadius += this.moamoa.vy;
-        
-        // 粒子の目標位置を更新
-        this.updateParticleTargets(vol);
-      } catch (error) {
-        console.error("音声分析エラー:", error);
-        this.moamoa.displayRadius += (this.moamoa.baseRadius-this.moamoa.displayRadius)*0.07;
-        this.moamoa.vy *= 0.51;
-      }
+      this.analyser.getByteFrequencyData(this.dataArray);
+      let sum = 0;
+      for(let x=0; x<this.dataArray.length; ++x) sum += this.dataArray[x];
+      vol = sum / this.dataArray.length / 255;
+      const target = this.moamoa.baseRadius + vol*150;
+      const dy = target - this.moamoa.displayRadius;
+      this.moamoa.vy += dy * this.moamoa.spring;
+      this.moamoa.vy *= this.moamoa.friction;
+      this.moamoa.displayRadius += this.moamoa.vy;
+      this.updateParticleTargets(vol);
     } else {
-      this.moamoa.displayRadius += (this.moamoa.baseRadius-this.moamoa.displayRadius)*0.07;
-      this.moamoa.vy *= 0.51;
+      this.moamoa.displayRadius += (this.moamoa.baseRadius-this.moamoa.displayRadius)*0.08;
+      this.moamoa.vy *= 0.5;
     }
-    
-    // タッチ波紋描画
+
+    // タッチ波紋（パステルパープル）
     for (const ripple of this.touchRipples) {
-      ctx.save();
-      const alpha = 0.24 * (1-ripple.age/1.1);
+      const alpha = 0.09 * (1 - ripple.age/1.1);
       if(alpha<=0) continue;
       ctx.beginPath();
       ctx.arc(ripple.x, ripple.y, ripple.r, 0, 2*Math.PI);
-      ctx.fillStyle = `rgba(120,180,255,${alpha})`;
-      ctx.filter = `blur(2px)`;
+      ctx.fillStyle = `rgba(198,180,255,${alpha})`;
       ctx.fill();
-      ctx.restore();
       ripple.r += 9; ripple.age += 0.022;
     }
     this.touchRipples = this.touchRipples.filter(r=>r.age<1.1);
 
-    // モワモワ多重グラデ
+    // モワモワ多重グラデーション
     const cx = this.moamoa.cx, cy = this.moamoa.cy, col = this.moamoa.color;
-    for(let i=6;i>=1;--i){
-      ctx.save();
-      const r = this.moamoa.displayRadius*i*0.32+38;
-      const grad = ctx.createRadialGradient(cx,cy,r*0.33,cx,cy,r);
-      const alpha = 0.10+0.04*i+0.15*Math.sin(this.time/830+i);
-      grad.addColorStop(0,`rgba(${col[0]},${col[1]},${col[2]},${alpha})`);
-      grad.addColorStop(0.68,`rgba(${col[0]},${col[1]},${col[2]},0.0)`);
-      grad.addColorStop(1,"rgba(255,255,255,0)");
-      ctx.globalCompositeOperation='lighter';
+    for(let i=3; i>=1; --i){
+      const r = this.moamoa.displayRadius*i*0.25+20;
+      const grad = ctx.createRadialGradient(cx,cy,r*0.45,cx,cy,r);
+      // 淡い青紫と白のなめらかグラデに
+      const hue = 252 + 7*Math.sin(this.time/1500+i*1.7);
+      const pastel = `hsl(${hue},52%,85%)`;
+      const alpha = 0.05+0.03*i+0.08*Math.sin(this.time/980+i);
+      grad.addColorStop(0,pastel);
+      grad.addColorStop(0.67,`rgba(224,214,255,${alpha})`);
+      grad.addColorStop(1,"rgba(250,250,255,0)");
       ctx.beginPath();
       ctx.arc(cx,cy,r,0,2*Math.PI);
-      ctx.fillStyle=grad; ctx.filter=`blur(${i*1.7+1}px)`;
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle=grad;
+      ctx.filter = `blur(${8+2*i}px)`;
       ctx.fill();
-      ctx.globalCompositeOperation='source-over';
-      ctx.restore();
+      ctx.globalAlpha = 1.0;
+      ctx.filter = 'none';
     }
-    
-    // 粒子構成のモワモワを描画
+
+    // パープルメイン円
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx,cy,this.moamoa.displayRadius,0,2*Math.PI);
+    ctx.shadowColor = 'rgba(200,180,250,0.15)';
+    ctx.shadowBlur = 17;
+    ctx.fillStyle = `rgba(${col[0]},${col[1]},${col[2]},0.25)`;
+    ctx.fill();
+    ctx.restore();
+
+    // 粒子描画
     this.updateParticles();
     this.drawParticles();
   }
@@ -187,92 +170,69 @@ class BabyMoamoa {
     const rect = this.canvas.getBoundingClientRect();
     const px = (e.clientX || e.touches?.[0]?.clientX)-rect.left;
     const py = (e.clientY || e.touches?.[0]?.clientY)-rect.top;
-    // タッチ位置に波紋と、メイン円をよせる
     if (isNaN(px)||isNaN(py)) return;
-    
-    // 初回タッチでステータステキストを非表示
     if (!this.hasTouched) {
       this.hasTouched = true;
       this.status.style.opacity = '0';
-      this.status.style.transition = 'opacity 0.5s ease';
     }
-    
     this.touchRipples.push({x:px,y:py,r:18,age:0});
-    // 中心円もタッチした方向にゆっくり近づける
     this.moamoa.cx += (px-this.moamoa.cx)*0.15;
     this.moamoa.cy += (py-this.moamoa.cy)*0.15;
-    
-    // 粒子の目標位置も更新
-    this.updateParticleTargets(0.5); // タッチ時の強度
+    this.updateParticleTargets(0.33);
   }
-  
   updateParticleTargets(intensity = 0) {
-    const cx = this.moamoa.cx;
-    const cy = this.moamoa.cy;
-    const radius = this.moamoa.displayRadius;
-    
+    const cx = this.moamoa.cx, cy = this.moamoa.cy, radius = this.moamoa.displayRadius;
     this.particles.forEach((particle, i) => {
-      const angle = particle.angle + this.time / 2000 + Math.sin(this.time / 1000 + i) * 0.1;
-      const r = radius * (0.8 + Math.random() * 0.4) + intensity * 50;
-      
+      const angle = particle.angle + this.time / 2600 + Math.sin(this.time / 1100 + i) * 0.08;
+      const r = radius * (0.85 + Math.sin(this.time/2300 + i*0.7) * 0.14) + intensity * 18;
       particle.targetX = cx + Math.cos(angle) * r;
       particle.targetY = cy + Math.sin(angle) * r;
     });
   }
-  
   updateParticles() {
     this.particles.forEach(particle => {
-      // バネ物理で目標位置に向かう
       const dx = particle.targetX - particle.x;
       const dy = particle.targetY - particle.y;
-      
       particle.vx += dx * particle.spring;
       particle.vy += dy * particle.spring;
-      
       particle.vx *= particle.friction;
       particle.vy *= particle.friction;
-      
       particle.x += particle.vx;
       particle.y += particle.vy;
     });
   }
-  
   drawParticles() {
     const ctx = this.ctx;
-    const col = this.moamoa.color;
-    
-    this.particles.forEach(particle => {
+    this.particles.forEach((particle, i) => {
+      ctx.save();
+      const baseHue = 256 + 5*Math.sin(this.time/1700 + i*0.1);
       ctx.beginPath();
       ctx.arc(particle.x, particle.y, particle.size, 0, 2*Math.PI);
-      ctx.fillStyle = `rgba(${col[0]},${col[1]},${col[2]},0.8)`;
-      ctx.shadowColor = `rgba(${col[0]},${col[1]},${col[2]},0.5)`;
-      ctx.shadowBlur = 4;
+      ctx.fillStyle = `hsl(${baseHue}, 46%, 88%)`;
+      ctx.globalAlpha = 0.15 + 0.09 * Math.abs(Math.sin(this.time/1250 + i*0.27));
+      ctx.shadowColor = `rgba(200,180,250,0.21)`;
+      ctx.shadowBlur = 10;
       ctx.fill();
+      ctx.restore();
     });
   }
-
   startLongPress(e) {
-    // 長押し判定
     this.longPressTimer = setTimeout(()=>{
       this.isLongPress = true;
-      // 例：色変更＆拡大
       this.moamoa.color = [
-        80+Math.floor(Math.random()*70),
-        100+Math.floor(Math.random()*120),
-        200+Math.floor(Math.random()*45)
+        180+Math.floor(Math.random()*35),  // 赤〜青紫の間
+        169+Math.floor(Math.random()*18),
+        240+Math.floor(Math.random()*25)
       ];
-      this.moamoa.displayRadius *= 1.25;
-      this.touchRipples.push({x:e.clientX, y:e.clientY, r:38, age:0}); //でかい波紋
-    }, 600);
+      this.moamoa.displayRadius *= 1.19;
+      this.touchRipples.push({x:e.clientX, y:e.clientY, r:38, age:0});
+    }, 650);
   }
-
   endLongPress(e) {
     clearTimeout(this.longPressTimer);
-    if(this.isLongPress){
+    if(this.isLongPress) {
       this.isLongPress = false;
-      // オプション:長押し解除で何らかのリアクション
     }else{
-      // 通常の短押し波紋
       this.handlePointer(e);
     }
   }
