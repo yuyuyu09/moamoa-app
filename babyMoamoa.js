@@ -20,6 +20,11 @@ class BabyMoamoa {
     this.longPressTimer = null;
     this.time = 0; // 時間管理を最適化
     this.hasTouched = false; // タッチしたかどうかのフラグ
+    
+    // 粒子構成のモワモワ
+    this.particles = [];
+    this.numParticles = 200; // 粒子数
+    this.initParticles();
     this.resize();
     window.addEventListener('resize', () => this.resize());
     // タッチ＆マウス押下
@@ -40,6 +45,33 @@ class BabyMoamoa {
     this.canvas.height = window.innerHeight;
     this.moamoa.cx = window.innerWidth / 2;
     this.moamoa.cy = window.innerHeight / 2;
+    this.initParticles(); // リサイズ時に粒子を再初期化
+  }
+  
+  initParticles() {
+    this.particles = [];
+    const cx = this.moamoa.cx;
+    const cy = this.moamoa.cy;
+    const radius = this.moamoa.displayRadius;
+    
+    for (let i = 0; i < this.numParticles; i++) {
+      const angle = (Math.PI * 2 * i) / this.numParticles;
+      const r = radius * (0.8 + Math.random() * 0.4); // 半径にランダム性
+      
+      this.particles.push({
+        x: cx + Math.cos(angle) * r,
+        y: cy + Math.sin(angle) * r,
+        targetX: cx + Math.cos(angle) * r,
+        targetY: cy + Math.sin(angle) * r,
+        vx: 0,
+        vy: 0,
+        size: 2 + Math.random() * 3,
+        angle: angle,
+        baseRadius: r,
+        spring: 0.1 + Math.random() * 0.1,
+        friction: 0.8 + Math.random() * 0.1
+      });
+    }
   }
   async setupMic() {
     try {
@@ -100,6 +132,9 @@ class BabyMoamoa {
         this.moamoa.vy += dy * this.moamoa.spring;
         this.moamoa.vy *= this.moamoa.friction;
         this.moamoa.displayRadius += this.moamoa.vy;
+        
+        // 粒子の目標位置を更新
+        this.updateParticleTargets(vol);
       } catch (error) {
         console.error("音声分析エラー:", error);
         this.moamoa.displayRadius += (this.moamoa.baseRadius-this.moamoa.displayRadius)*0.07;
@@ -144,31 +179,9 @@ class BabyMoamoa {
       ctx.restore();
     }
     
-    // メイン円
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(cx, cy, this.moamoa.displayRadius, 0, 2*Math.PI);
-    ctx.shadowColor = 'rgba(120,180,255,0.28)';
-    ctx.shadowBlur = 26;
-    ctx.fillStyle = `rgba(${col[0]},${col[1]},${col[2]},0.72)`;
-    ctx.fill();
-    ctx.restore();
-
-    // 粒子（モワモワ円周上に点を追加）
-    const numParticles = 35;
-    const r = this.moamoa.displayRadius+16;
-    for(let i=0;i<numParticles;++i){
-      const ang = (2*Math.PI/numParticles)*i + this.time/2500 + Math.sin(i);
-      const px = cx + Math.cos(ang)*r + Math.sin(this.time/700+ang)*7;
-      const py = cy + Math.sin(ang)*r + Math.cos(this.time/910+ang)*7;
-      const alpha = 0.6+0.3*Math.sin(this.time/900+i);
-      ctx.beginPath();
-      ctx.arc(px,py, 3+Math.abs(Math.sin(this.time/1700+i))*2, 0, 2*Math.PI);
-      ctx.fillStyle = `rgba(255,255,255,${alpha*0.23})`;
-      ctx.shadowColor = `rgba(120,180,255,${alpha*0.4})`;
-      ctx.shadowBlur = 8;
-      ctx.fill();
-    }
+    // 粒子構成のモワモワを描画
+    this.updateParticles();
+    this.drawParticles();
   }
   handlePointer(e) {
     const rect = this.canvas.getBoundingClientRect();
@@ -188,6 +201,54 @@ class BabyMoamoa {
     // 中心円もタッチした方向にゆっくり近づける
     this.moamoa.cx += (px-this.moamoa.cx)*0.15;
     this.moamoa.cy += (py-this.moamoa.cy)*0.15;
+    
+    // 粒子の目標位置も更新
+    this.updateParticleTargets(0.5); // タッチ時の強度
+  }
+  
+  updateParticleTargets(intensity = 0) {
+    const cx = this.moamoa.cx;
+    const cy = this.moamoa.cy;
+    const radius = this.moamoa.displayRadius;
+    
+    this.particles.forEach((particle, i) => {
+      const angle = particle.angle + this.time / 2000 + Math.sin(this.time / 1000 + i) * 0.1;
+      const r = radius * (0.8 + Math.random() * 0.4) + intensity * 50;
+      
+      particle.targetX = cx + Math.cos(angle) * r;
+      particle.targetY = cy + Math.sin(angle) * r;
+    });
+  }
+  
+  updateParticles() {
+    this.particles.forEach(particle => {
+      // バネ物理で目標位置に向かう
+      const dx = particle.targetX - particle.x;
+      const dy = particle.targetY - particle.y;
+      
+      particle.vx += dx * particle.spring;
+      particle.vy += dy * particle.spring;
+      
+      particle.vx *= particle.friction;
+      particle.vy *= particle.friction;
+      
+      particle.x += particle.vx;
+      particle.y += particle.vy;
+    });
+  }
+  
+  drawParticles() {
+    const ctx = this.ctx;
+    const col = this.moamoa.color;
+    
+    this.particles.forEach(particle => {
+      ctx.beginPath();
+      ctx.arc(particle.x, particle.y, particle.size, 0, 2*Math.PI);
+      ctx.fillStyle = `rgba(${col[0]},${col[1]},${col[2]},0.8)`;
+      ctx.shadowColor = `rgba(${col[0]},${col[1]},${col[2]},0.5)`;
+      ctx.shadowBlur = 4;
+      ctx.fill();
+    });
   }
 
   startLongPress(e) {
