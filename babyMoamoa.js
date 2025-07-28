@@ -94,21 +94,26 @@ class BabyMoamoa {
     }
     this.touchRipples = this.touchRipples.filter(r=>r.age<1.1);
 
-    // モワモワ多重グラデ（最適化）
+    // モワモワ多重グラデ（リッチ感強化）
     const cx = this.moamoa.cx, cy = this.moamoa.cy, col = this.moamoa.color;
-    for(let i=4;i>=1;--i){ // 6から4に削減
-      const r = this.moamoa.displayRadius*i*0.32+38;
-      const grad = ctx.createRadialGradient(cx,cy,r*0.33,cx,cy,r);
-      const alpha = 0.10+0.04*i+0.15*Math.sin(this.time/830+i);
+    for(let i=4;i>=1;--i){
+      ctx.save();
+      // 透明度や色を周期で少しずつ変化
+      const phase = this.time/700 + i*0.8;
+      const r = this.moamoa.displayRadius * i * 0.29 + 35;
+      const grad = ctx.createRadialGradient(cx,cy,r*0.32,cx,cy,r);
+      const alpha = 0.10+0.09*Math.abs(Math.sin(phase)) + 0.06*i;
       grad.addColorStop(0,`rgba(${col[0]},${col[1]},${col[2]},${alpha})`);
-      grad.addColorStop(0.68,`rgba(${col[0]},${col[1]},${col[2]},0.0)`);
+      grad.addColorStop(0.63,`rgba(${col[0]},${col[1]},${col[2]},0)`);
       grad.addColorStop(1,"rgba(255,255,255,0)");
       ctx.globalCompositeOperation='lighter';
       ctx.beginPath();
       ctx.arc(cx,cy,r,0,2*Math.PI);
+      ctx.filter=`blur(${i*2.7+3}px)`; // 層ごとにブラー差を強調
       ctx.fillStyle=grad;
       ctx.fill();
       ctx.globalCompositeOperation='source-over';
+      ctx.restore();
     }
     
     // メイン円
