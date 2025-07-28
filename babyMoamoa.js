@@ -11,8 +11,8 @@ class BabyMoamoa {
       displayRadius: Math.min(window.innerWidth, window.innerHeight) * 0.3, // スマホサイズに応じて調整
       vy: 0,
       baseRadius: Math.min(window.innerWidth, window.innerHeight) * 0.3,
-      spring: 0.21,
-      friction: 0.72,
+      spring: 0.09,     // もっと小さく
+      friction: 0.85,   // もっと大きく
       color: [200, 200, 210] // グレー系
     };
     this.touchRipples = [];
@@ -24,7 +24,7 @@ class BabyMoamoa {
 
     // パープル粒子
     this.particles = [];
-    this.numParticles = 300; // スマホ用に削減
+    this.numParticles = 55; // 50〜60粒ぐらい
     this.initParticles();
 
     this.resize();
@@ -78,8 +78,8 @@ class BabyMoamoa {
         size: 3.0 + Math.random() * 8.0, // 粒子の大きさに大きなばらつき
         angle: angle,
         baseRadius: r,
-        spring: 0.11 + Math.random() * 0.08,
-        friction: 0.81 + Math.random() * 0.1,
+        spring: 0.07 + Math.random() * 0.03, // さらに摩擦を上げる
+        friction: 0.91 + Math.random() * 0.07, // さらに摩擦を上げる
         flowPhase: Math.random() * Math.PI * 2 // 流れの位相
       });
     }
@@ -122,7 +122,7 @@ class BabyMoamoa {
       let sum = 0;
       for(let x=0; x<this.dataArray.length; ++x) sum += this.dataArray[x];
       vol = sum / this.dataArray.length / 255;
-      const target = this.moamoa.baseRadius + vol*150;
+      const target = this.moamoa.baseRadius + vol * 38; // 150→38程度
       const dy = target - this.moamoa.displayRadius;
       this.moamoa.vy += dy * this.moamoa.spring;
       this.moamoa.vy *= this.moamoa.friction;
@@ -200,17 +200,17 @@ class BabyMoamoa {
       const rotationAngle = particle.angle + rotationTime * 0.3 + i * 0.0005; // 非常にゆったり
       const baseRadius = radius * (0.6 + Math.random() * 0.8); // 円の範囲内に制限
       
-      // 非常に小さな揺らぎ（ほとんど動かない）
-      const wobble1 = Math.sin(rotationTime * 0.1 + i * 0.01) * radius * 0.03; // 非常に小さく
-      const wobble2 = Math.cos(rotationTime * 0.15 + i * 0.015) * radius * 0.02; // 非常に小さく
+      // 非常に小さな揺らぎ（さらに小さく）
+      const wobble1 = Math.sin(rotationTime * 0.07 + i * 0.01) * radius * 0.01; // さらに小さく
+      const wobble2 = Math.cos(rotationTime * 0.12 + i * 0.012) * radius * 0.008; // さらに小さく
       
       let targetX = cx + Math.cos(rotationAngle) * baseRadius + wobble1;
       let targetY = cy + Math.sin(rotationAngle) * baseRadius + wobble2;
       
-      // 音声反応（非常に控えめに）
+      // 音声反応（より小さく）
       if (intensity > 0) {
-        const soundWave1 = Math.sin(this.time / 5000 + i * 0.03) * intensity * 4; // 非常に控えめ
-        const soundWave2 = Math.cos(this.time / 6000 + i * 0.04) * intensity * 3; // 非常に控えめ
+        const soundWave1 = Math.sin(this.time / 9000 + i * 0.02) * intensity * 1.2; // より小さく
+        const soundWave2 = Math.cos(this.time / 10000 + i * 0.018) * intensity * 1.1; // より小さく
         targetX += soundWave1;
         targetY += soundWave2;
       }
@@ -225,8 +225,8 @@ class BabyMoamoa {
         if (distance < avoidRadius) {
           const force = Math.pow((avoidRadius - distance) / avoidRadius, 2);
           const angle = Math.atan2(dy, dx);
-          targetX += Math.cos(angle) * force * 50; // 避ける力を激しく
-          targetY += Math.sin(angle) * force * 50;
+          targetX += Math.cos(angle) * force * 25; // 避ける力を半分に抑制
+          targetY += Math.sin(angle) * force * 25;
         }
       });
       
