@@ -155,18 +155,17 @@ class BabyMoamoa {
       x: px,
       y: py,
       age: 0,
-      radius: 60 // 避ける範囲の半径
+      radius: 60
     });
     
     // バイブ効果（手動操作時）
     if (navigator.vibrate) {
-      navigator.vibrate(20); // 20msの軽いバイブ
+      navigator.vibrate(20);
     }
     
     this.touchRipples.push({x:px,y:py,r:18,age:0});
-    this.moamoa.cx += (px-this.moamoa.cx)*0.15;
-    this.moamoa.cy += (py-this.moamoa.cy)*0.15;
-    this.updateParticleTargets(0.5); // 手動操作時は強度を上げる
+    // ドラッグ機能を削除 - 中心位置は固定
+    this.updateParticleTargets(0.3); // 強度も控えめに
   }
   updateParticleTargets(intensity = 0) {
     const cx = this.moamoa.cx, cy = this.moamoa.cy, radius = this.moamoa.displayRadius;
@@ -175,27 +174,32 @@ class BabyMoamoa {
     this.touchPoints.forEach(point => {
       point.age += 0.02;
     });
-    this.touchPoints = this.touchPoints.filter(point => point.age < 2.0); // 2秒で消滅
+    this.touchPoints = this.touchPoints.filter(point => point.age < 2.0);
     
     this.particles.forEach((particle, i) => {
-      // 常時動く基本の目標位置（より動的）
-      const baseAngle = particle.angle + this.time / 2000 + Math.sin(this.time / 800 + i) * 0.15;
-      const baseR = radius * Math.sqrt(Math.random()) * (0.7 + Math.sin(this.time/1500 + i*0.5) * 0.3);
+      // より品のある動き - データっぽい軌道
+      const timeScale = this.time / 3000;
+      const particlePhase = i * 0.1;
       
-      // ランダムな動きを追加
-      const randomX = Math.sin(this.time / 1200 + i * 0.7) * 20;
-      const randomY = Math.cos(this.time / 1400 + i * 0.9) * 20;
+      // 複数の正弦波を組み合わせた滑らかな動き
+      const wave1 = Math.sin(timeScale + particlePhase) * 0.3;
+      const wave2 = Math.cos(timeScale * 0.7 + particlePhase * 1.3) * 0.2;
+      const wave3 = Math.sin(timeScale * 0.5 + particlePhase * 0.7) * 0.15;
       
-      let targetX = cx + Math.cos(baseAngle) * baseR + randomX;
-      let targetY = cy + Math.sin(baseAngle) * baseR + randomY;
+      const baseAngle = particle.angle + wave1 + wave2 + wave3;
+      const baseR = radius * (0.6 + wave3 * 0.4);
       
-      // 音声反応
+      let targetX = cx + Math.cos(baseAngle) * baseR;
+      let targetY = cy + Math.sin(baseAngle) * baseR;
+      
+      // 音声反応（より控えめに）
       if (intensity > 0) {
-        targetX += Math.sin(this.time / 500 + i) * intensity * 30;
-        targetY += Math.cos(this.time / 600 + i) * intensity * 30;
+        const soundWave = Math.sin(this.time / 800 + i * 0.5) * intensity * 15;
+        targetX += soundWave;
+        targetY += soundWave * 0.7;
       }
       
-      // タッチポイントを避ける
+      // タッチポイントを避ける（より滑らかに）
       this.touchPoints.forEach(point => {
         const dx = targetX - point.x;
         const dy = targetY - point.y;
@@ -203,10 +207,10 @@ class BabyMoamoa {
         const avoidRadius = point.radius * (1 - point.age / 2.0);
         
         if (distance < avoidRadius) {
-          const force = (avoidRadius - distance) / avoidRadius;
+          const force = Math.pow((avoidRadius - distance) / avoidRadius, 2); // より滑らかな力
           const angle = Math.atan2(dy, dx);
-          targetX += Math.cos(angle) * force * 50;
-          targetY += Math.sin(angle) * force * 50;
+          targetX += Math.cos(angle) * force * 30;
+          targetY += Math.sin(angle) * force * 30;
         }
       });
       
@@ -223,9 +227,9 @@ class BabyMoamoa {
       particle.vx *= particle.friction;
       particle.vy *= particle.friction;
       
-      // 常時動くための微細なランダム動きを追加
-      particle.vx += (Math.random() - 0.5) * 0.3;
-      particle.vy += (Math.random() - 0.5) * 0.3;
+      // より滑らかな動きのための微細な調整
+      particle.vx += (Math.random() - 0.5) * 0.1; // ランダム要素を大幅削減
+      particle.vy += (Math.random() - 0.5) * 0.1;
       
       particle.x += particle.vx;
       particle.y += particle.vy;
