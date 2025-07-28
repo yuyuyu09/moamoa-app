@@ -13,7 +13,7 @@ class BabyMoamoa {
       baseRadius: 80,
       spring: 0.21,
       friction: 0.72,
-      color: [186, 176, 255] // 淡パープル #bab0ff
+      color: [228, 220, 255] // より淡いパープル
     };
     this.touchRipples = [];
     this.isLongPress = false;
@@ -23,7 +23,7 @@ class BabyMoamoa {
 
     // パープル粒子
     this.particles = [];
-    this.numParticles = 68;
+    this.numParticles = 180;
     this.initParticles();
 
     this.resize();
@@ -205,13 +205,14 @@ class BabyMoamoa {
     const ctx = this.ctx;
     this.particles.forEach((particle, i) => {
       ctx.save();
-      const baseHue = 256 + 5*Math.sin(this.time/1700 + i*0.1);
+      // パステルパープル＋グレー寄りも混ぜる
+      const hue = 252 + 8*Math.sin(this.time/1000 + i*0.207);
       ctx.beginPath();
       ctx.arc(particle.x, particle.y, particle.size, 0, 2*Math.PI);
-      ctx.fillStyle = `hsl(${baseHue}, 46%, 88%)`;
-      ctx.globalAlpha = 0.15 + 0.09 * Math.abs(Math.sin(this.time/1250 + i*0.27));
-      ctx.shadowColor = `rgba(200,180,250,0.21)`;
-      ctx.shadowBlur = 10;
+      ctx.fillStyle = `hsl(${hue}, 40%, 89%)`; // 極淡
+      ctx.globalAlpha = 0.12 + 0.08 * Math.abs(Math.sin(this.time/1100 + i*0.4));
+      ctx.shadowColor = `rgba(200,190,255,0.14)`;
+      ctx.shadowBlur = 7;
       ctx.fill();
       ctx.restore();
     });
