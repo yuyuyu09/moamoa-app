@@ -193,27 +193,26 @@ class BabyMoamoa {
       const timeScale = this.time / 4000; // よりゆっくり
       const flowTime = this.time / 3500 + particle.flowPhase;
       
-      // ゆったりとした散らばった動き（円のガイド内で）
-      const randomTime = this.time / 3500 + particle.flowPhase; // よりゆったり
+      // 本当にゆったりとした円の回転
+      const rotationTime = this.time / 20000; // 非常にゆったりとした回転
       
-      // 円のガイド内でのランダムな動き
-      const randomAngle = particle.angle + timeScale * 0.3 + i * 0.01; // よりゆったり
-      const baseRadius = radius * (0.3 + Math.random() * 1.4); // 円の範囲内に制限
+      // 円周に沿ったゆったりとした回転動き
+      const rotationAngle = particle.angle + rotationTime * 0.3 + i * 0.0005; // 非常にゆったり
+      const baseRadius = radius * (0.6 + Math.random() * 0.8); // 円の範囲内に制限
       
-      // ゆったりとした波の組み合わせ
-      const wave1 = Math.sin(randomTime * 0.5 + i * 0.08) * radius * 0.4; // より小さく
-      const wave2 = Math.cos(randomTime * 0.7 + i * 0.12) * radius * 0.3; // より小さく
-      const wave3 = Math.sin(randomTime * 0.3 + i * 0.06) * radius * 0.2; // より小さく
+      // 非常に小さな揺らぎ（ほとんど動かない）
+      const wobble1 = Math.sin(rotationTime * 0.1 + i * 0.01) * radius * 0.03; // 非常に小さく
+      const wobble2 = Math.cos(rotationTime * 0.15 + i * 0.015) * radius * 0.02; // 非常に小さく
       
-      let targetX = cx + Math.cos(randomAngle) * baseRadius + wave1 + wave2;
-      let targetY = cy + Math.sin(randomAngle) * baseRadius + wave2 + wave3;
+      let targetX = cx + Math.cos(rotationAngle) * baseRadius + wobble1;
+      let targetY = cy + Math.sin(rotationAngle) * baseRadius + wobble2;
       
-      // 音声反応（ゆったりとした動きに合わせて）
+      // 音声反応（非常に控えめに）
       if (intensity > 0) {
-        const soundWave1 = Math.sin(this.time / 1000 + i * 0.12) * intensity * 25; // よりゆったり
-        const soundWave2 = Math.cos(this.time / 1200 + i * 0.15) * intensity * 20; // よりゆったり
-        targetX += soundWave1 + soundWave2;
-        targetY += soundWave2 + soundWave1 * 0.6;
+        const soundWave1 = Math.sin(this.time / 5000 + i * 0.03) * intensity * 4; // 非常に控えめ
+        const soundWave2 = Math.cos(this.time / 6000 + i * 0.04) * intensity * 3; // 非常に控えめ
+        targetX += soundWave1;
+        targetY += soundWave2;
       }
       
       // タッチポイントを避ける（軽量化）
@@ -254,8 +253,8 @@ class BabyMoamoa {
     this.particles.forEach((particle, i) => {
       ctx.save();
       // グレー系の粒子
-      // 粒子の大きさを時間とともにゆったり変化させる
-      const sizeVariation = Math.sin(this.time/2500 + i*0.2) * 1.5; // よりゆったり
+      // 粒子の大きさを時間とともに非常に静かに変化させる
+      const sizeVariation = Math.sin(this.time/10000 + i*0.05) * 0.4; // 非常に静か
       const dynamicSize = Math.max(1.5, particle.size + sizeVariation);
       
       ctx.beginPath();
