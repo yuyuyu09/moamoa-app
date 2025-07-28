@@ -8,9 +8,9 @@ class BabyMoamoa {
     this.moamoa = {
       cx: window.innerWidth / 2,
       cy: window.innerHeight / 2,
-      displayRadius: 80,
+      displayRadius: Math.min(window.innerWidth, window.innerHeight) * 0.3, // スマホサイズに応じて調整
       vy: 0,
-      baseRadius: 80,
+      baseRadius: Math.min(window.innerWidth, window.innerHeight) * 0.3,
       spring: 0.21,
       friction: 0.72,
       color: [200, 200, 210] // グレー系
@@ -24,7 +24,7 @@ class BabyMoamoa {
 
     // パープル粒子
     this.particles = [];
-    this.numParticles = 720; // 4倍に増加
+    this.numParticles = 300; // スマホ用に削減
     this.initParticles();
 
     this.resize();
@@ -45,6 +45,9 @@ class BabyMoamoa {
     this.canvas.height = window.innerHeight;
     this.moamoa.cx = window.innerWidth / 2;
     this.moamoa.cy = window.innerHeight / 2;
+    // スマホサイズに応じて半径を調整
+    this.moamoa.displayRadius = Math.min(window.innerWidth, window.innerHeight) * 0.3;
+    this.moamoa.baseRadius = Math.min(window.innerWidth, window.innerHeight) * 0.3;
     this.initParticles();
   }
   initParticles() {
@@ -54,9 +57,10 @@ class BabyMoamoa {
     const radius = this.moamoa.displayRadius;
     
     for (let i = 0; i < this.numParticles; i++) {
-      // より広い範囲に散らばる
+      // 手前から後ろへの流れを考慮した初期配置
       const angle = Math.random() * Math.PI * 2;
-      const r = radius * (0.2 + Math.random() * 1.5); // より広い範囲に分布
+      // 中央も含めてより均等に分布（中央の空きを防ぐ）
+      const r = radius * (0.1 + Math.random() * 1.8); // 中央から外側まで均等
       
       this.particles.push({
         x: cx + Math.cos(angle) * r,
@@ -69,7 +73,8 @@ class BabyMoamoa {
         angle: angle,
         baseRadius: r,
         spring: 0.11 + Math.random() * 0.08,
-        friction: 0.81 + Math.random() * 0.1
+        friction: 0.81 + Math.random() * 0.1,
+        flowPhase: Math.random() * Math.PI * 2 // 流れの位相
       });
     }
   }
@@ -167,28 +172,31 @@ class BabyMoamoa {
     this.touchPoints = this.touchPoints.filter(point => point.age < 2.0);
     
     this.particles.forEach((particle, i) => {
-      // 気持ちいい回転する動き
-      const timeScale = this.time / 2000; // より速い回転
-      const particlePhase = i * 0.02; // より小さな位相差で滑らかに
+      // 手前から後ろへの流れアニメーション（軽量化）
+      const timeScale = this.time / 4000; // よりゆっくり
+      const flowTime = this.time / 3500 + particle.flowPhase;
       
-      // 正面から後ろへの回転感
-      const rotationAngle = particle.angle + timeScale + particlePhase;
-      const spiralEffect = Math.sin(timeScale * 0.5 + i * 0.1) * 0.3; // 螺旋効果
+      // 手前から後ろへの流れ（Y軸方向）
+      const flowY = Math.sin(flowTime) * radius * 0.6; // 流れを控えめに
       
-      // より広い範囲で回転
-      const baseR = radius * (0.3 + Math.random() * 1.2 + spiralEffect);
+      // 回転しながら流れる動き（軽量化）
+      const rotationAngle = particle.angle + timeScale * 0.3 + i * 0.005; // 計算を軽く
+      const spiralEffect = Math.sin(timeScale * 0.2 + i * 0.03) * 0.15; // 螺旋効果を軽く
+      
+      // 中央も含めて均等に分布
+      const baseR = radius * (0.2 + Math.random() * 1.4 + spiralEffect);
       
       let targetX = cx + Math.cos(rotationAngle) * baseR;
-      let targetY = cy + Math.sin(rotationAngle) * baseR;
+      let targetY = cy + Math.sin(rotationAngle) * baseR + flowY;
       
-      // 音声反応（より気持ちよく）
+      // 音声反応（軽量化）
       if (intensity > 0) {
-        const soundWave = Math.sin(this.time / 600 + i * 0.2) * intensity * 20;
+        const soundWave = Math.sin(this.time / 800 + i * 0.1) * intensity * 15; // 計算を軽く
         targetX += soundWave;
-        targetY += soundWave * 0.8;
+        targetY += soundWave * 0.5 + flowY * 0.2;
       }
       
-      // タッチポイントを避ける（より滑らかに）
+      // タッチポイントを避ける（軽量化）
       this.touchPoints.forEach(point => {
         const dx = targetX - point.x;
         const dy = targetY - point.y;
@@ -198,8 +206,8 @@ class BabyMoamoa {
         if (distance < avoidRadius) {
           const force = Math.pow((avoidRadius - distance) / avoidRadius, 2);
           const angle = Math.atan2(dy, dx);
-          targetX += Math.cos(angle) * force * 30;
-          targetY += Math.sin(angle) * force * 30;
+          targetX += Math.cos(angle) * force * 25; // 力を軽く
+          targetY += Math.sin(angle) * force * 25;
         }
       });
       
@@ -216,10 +224,7 @@ class BabyMoamoa {
       particle.vx *= particle.friction;
       particle.vy *= particle.friction;
       
-      // より滑らかな動きのための微細な調整
-      particle.vx += (Math.random() - 0.5) * 0.1; // ランダム要素を大幅削減
-      particle.vy += (Math.random() - 0.5) * 0.1;
-      
+      // 軽量化のためランダム要素を削除
       particle.x += particle.vx;
       particle.y += particle.vy;
     });
