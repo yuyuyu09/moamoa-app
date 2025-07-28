@@ -54,9 +54,9 @@ class BabyMoamoa {
     const radius = this.moamoa.displayRadius;
     
     for (let i = 0; i < this.numParticles; i++) {
-      // 円全体にランダムに点在
+      // 円全体に均等に点在（円周上に固まらないように）
       const angle = Math.random() * Math.PI * 2;
-      const r = radius * Math.sqrt(Math.random()) * 0.9; // 中心に近いほど密度が高い
+      const r = radius * Math.random() * 0.8; // ランダムな距離で均等分布
       
       this.particles.push({
         x: cx + Math.cos(angle) * r,
@@ -122,17 +122,7 @@ class BabyMoamoa {
       this.moamoa.vy *= 0.5;
     }
 
-    // タッチ波紋（グレー系）
-    for (const ripple of this.touchRipples) {
-      const alpha = 0.09 * (1 - ripple.age/1.1);
-      if(alpha<=0) continue;
-      ctx.beginPath();
-      ctx.arc(ripple.x, ripple.y, ripple.r, 0, 2*Math.PI);
-      ctx.fillStyle = `rgba(180,180,190,${alpha})`;
-      ctx.fill();
-      ripple.r += 9; ripple.age += 0.022;
-    }
-    this.touchRipples = this.touchRipples.filter(r=>r.age<1.1);
+    // タッチ波紋を削除 - ブラー効果なし
 
     // 背景の半透明円を削除 - 粒子のみで構成
 
@@ -163,7 +153,7 @@ class BabyMoamoa {
       navigator.vibrate(20);
     }
     
-    this.touchRipples.push({x:px,y:py,r:18,age:0});
+    // タッチ波紋を削除
     // ドラッグ機能を削除 - 中心位置は固定
     this.updateParticleTargets(0.3); // 強度も控えめに
   }
@@ -177,26 +167,25 @@ class BabyMoamoa {
     this.touchPoints = this.touchPoints.filter(point => point.age < 2.0);
     
     this.particles.forEach((particle, i) => {
-      // より品のある動き - データっぽい軌道
-      const timeScale = this.time / 3000;
-      const particlePhase = i * 0.1;
+      // 円全体に均等に分布するように目標位置を設定
+      const timeScale = this.time / 4000; // よりゆっくり
+      const particlePhase = i * 0.05; // より小さな位相差
       
-      // 複数の正弦波を組み合わせた滑らかな動き
-      const wave1 = Math.sin(timeScale + particlePhase) * 0.3;
-      const wave2 = Math.cos(timeScale * 0.7 + particlePhase * 1.3) * 0.2;
-      const wave3 = Math.sin(timeScale * 0.5 + particlePhase * 0.7) * 0.15;
+      // より控えめな波の動き
+      const wave1 = Math.sin(timeScale + particlePhase) * 0.2;
+      const wave2 = Math.cos(timeScale * 0.8 + particlePhase * 1.1) * 0.15;
       
-      const baseAngle = particle.angle + wave1 + wave2 + wave3;
-      const baseR = radius * (0.6 + wave3 * 0.4);
+      const baseAngle = particle.angle + wave1 + wave2;
+      const baseR = radius * (0.3 + Math.random() * 0.5); // より広い範囲に分布
       
       let targetX = cx + Math.cos(baseAngle) * baseR;
       let targetY = cy + Math.sin(baseAngle) * baseR;
       
       // 音声反応（より控えめに）
       if (intensity > 0) {
-        const soundWave = Math.sin(this.time / 800 + i * 0.5) * intensity * 15;
+        const soundWave = Math.sin(this.time / 1000 + i * 0.3) * intensity * 10;
         targetX += soundWave;
-        targetY += soundWave * 0.7;
+        targetY += soundWave * 0.5;
       }
       
       // タッチポイントを避ける（より滑らかに）
@@ -207,10 +196,10 @@ class BabyMoamoa {
         const avoidRadius = point.radius * (1 - point.age / 2.0);
         
         if (distance < avoidRadius) {
-          const force = Math.pow((avoidRadius - distance) / avoidRadius, 2); // より滑らかな力
+          const force = Math.pow((avoidRadius - distance) / avoidRadius, 2);
           const angle = Math.atan2(dy, dx);
-          targetX += Math.cos(angle) * force * 30;
-          targetY += Math.sin(angle) * force * 30;
+          targetX += Math.cos(angle) * force * 25;
+          targetY += Math.sin(angle) * force * 25;
         }
       });
       
@@ -253,13 +242,9 @@ class BabyMoamoa {
   startLongPress(e) {
     this.longPressTimer = setTimeout(()=>{
       this.isLongPress = true;
-      this.moamoa.color = [
-        180+Math.floor(Math.random()*40),  // グレー系の範囲
-        180+Math.floor(Math.random()*40),
-        190+Math.floor(Math.random()*40)
-      ];
+      // 色変更を削除 - グレー系を維持
       this.moamoa.displayRadius *= 1.19;
-      this.touchRipples.push({x:e.clientX, y:e.clientY, r:38, age:0});
+      // タッチ波紋も削除
     }, 650);
   }
   endLongPress(e) {
