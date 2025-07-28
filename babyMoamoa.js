@@ -23,7 +23,7 @@ class BabyMoamoa {
 
     // パープル粒子
     this.particles = [];
-    this.numParticles = 180;
+    this.numParticles = 720; // 4倍に増加
     this.initParticles();
 
     this.resize();
