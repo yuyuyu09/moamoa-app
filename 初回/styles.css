@@ -1,0 +1,309 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial Rounded MT Bold', 'Arial', sans-serif;
+    background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
+    min-height: 100vh;
+    overflow-x: hidden;
+    cursor: pointer;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    text-align: center;
+}
+
+.header {
+    margin-bottom: 30px;
+}
+
+.header h1 {
+    font-size: 2.5rem;
+    color: #fff;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    margin-bottom: 10px;
+    animation: bounce 2s infinite;
+}
+
+.header p {
+    font-size: 1.2rem;
+    color: #fff;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+}
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(-10px);
+    }
+    60% {
+        transform: translateY(-5px);
+    }
+}
+
+/* 音声入力エリア */
+.voice-container {
+    position: relative;
+    margin: 40px auto;
+    width: 200px;
+    height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.voice-waves {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+}
+
+.wave {
+    position: absolute;
+    border: 3px solid rgba(255, 255, 255, 0.6);
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    animation: wave-pulse 2s infinite;
+}
+
+.wave1 { width: 60px; height: 60px; animation-delay: 0s; }
+.wave2 { width: 80px; height: 80px; animation-delay: 0.4s; }
+.wave3 { width: 100px; height: 100px; animation-delay: 0.8s; }
+.wave4 { width: 120px; height: 120px; animation-delay: 1.2s; }
+.wave5 { width: 140px; height: 140px; animation-delay: 1.6s; }
+
+@keyframes wave-pulse {
+    0% {
+        transform: translate(-50%, -50%) scale(0.8);
+        opacity: 0.8;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1.2);
+        opacity: 0;
+    }
+}
+
+.voice-button {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(45deg, #ff6b6b, #ffa500);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    transition: all 0.3s ease;
+    z-index: 10;
+}
+
+.voice-button:hover {
+    transform: scale(1.1);
+    box-shadow: 0 12px 25px rgba(0,0,0,0.4);
+}
+
+.voice-button:active {
+    transform: scale(0.95);
+}
+
+.mic-icon {
+    font-size: 2rem;
+    color: white;
+    animation: mic-bounce 1s infinite;
+}
+
+@keyframes mic-bounce {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+.pulse-ring {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1.5);
+        opacity: 0;
+    }
+}
+
+.status-text {
+    position: absolute;
+    bottom: -40px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: white;
+    font-size: 1rem;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+    white-space: nowrap;
+}
+
+/* インタラクティブエリア */
+.interactive-area {
+    margin: 40px 0;
+    min-height: 300px;
+    position: relative;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    overflow: hidden;
+}
+
+.floating-bubbles {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 300px;
+}
+
+.bubble {
+    position: absolute;
+    font-size: 2rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    animation: float 6s ease-in-out infinite;
+}
+
+.bubble:hover {
+    transform: scale(1.3) rotate(10deg);
+    filter: brightness(1.2);
+}
+
+.bubble1 { top: 20%; left: 20%; animation-delay: 0s; }
+.bubble2 { top: 30%; right: 25%; animation-delay: 1s; }
+.bubble3 { bottom: 30%; left: 30%; animation-delay: 2s; }
+.bubble4 { bottom: 20%; right: 20%; animation-delay: 3s; }
+.bubble5 { top: 50%; left: 50%; animation-delay: 4s; }
+
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0px) rotate(0deg);
+    }
+    25% {
+        transform: translateY(-20px) rotate(5deg);
+    }
+    50% {
+        transform: translateY(-10px) rotate(-5deg);
+    }
+    75% {
+        transform: translateY(-15px) rotate(3deg);
+    }
+}
+
+/* コントロールボタン */
+.controls {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin: 30px 0;
+    flex-wrap: wrap;
+}
+
+.control-btn {
+    padding: 15px 25px;
+    font-size: 1.1rem;
+    background: linear-gradient(45deg, #ff9a9e, #fecfef);
+    border: none;
+    border-radius: 25px;
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
+    font-weight: bold;
+}
+
+.control-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+}
+
+.control-btn:active {
+    transform: translateY(-1px);
+}
+
+/* フッター */
+.footer {
+    margin-top: 30px;
+    color: white;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+}
+
+/* レスポンシブデザイン */
+@media (max-width: 768px) {
+    .container {
+        padding: 15px;
+    }
+    
+    .header h1 {
+        font-size: 2rem;
+    }
+    
+    .controls {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .control-btn {
+        width: 200px;
+    }
+}
+
+/* 録音中のアニメーション */
+.recording .wave {
+    animation: recording-wave 0.5s infinite;
+}
+
+@keyframes recording-wave {
+    0%, 100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.8;
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.1);
+        opacity: 1;
+    }
+}
+
+.recording .voice-button {
+    background: linear-gradient(45deg, #ff4757, #ff3838);
+    animation: recording-pulse 0.5s infinite;
+}
+
+@keyframes recording-pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+/* 音声レベルに応じた波のアニメーション */
+.voice-level-1 .wave { animation-duration: 1.5s; }
+.voice-level-2 .wave { animation-duration: 1.2s; }
+.voice-level-3 .wave { animation-duration: 0.8s; }
+.voice-level-4 .wave { animation-duration: 0.5s; }
+.voice-level-5 .wave { animation-duration: 0.3s; } 
