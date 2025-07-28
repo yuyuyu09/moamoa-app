@@ -36,6 +36,12 @@ class BabyMoamoa {
     this.canvas.addEventListener('touchmove', e => {
       for(const t of e.touches) this.handlePointer(t);
     }, {passive: false});
+    
+    // タッチイベントを明示的に追加（バイブ機能のため）
+    this.canvas.addEventListener('touchstart', e => {
+      e.preventDefault();
+      this.handlePointer(e.touches[0]);
+    }, {passive: false});
 
     this.setupMic();
     this.animate();
@@ -69,7 +75,7 @@ class BabyMoamoa {
         targetY: cy + Math.sin(angle) * r,
         vx: 0,
         vy: 0,
-        size: 2.8 + Math.random() * 3.2,
+        size: 4.5 + Math.random() * 4.5, // 粒子を大きく
         angle: angle,
         baseRadius: r,
         spring: 0.11 + Math.random() * 0.08,
@@ -153,9 +159,20 @@ class BabyMoamoa {
       radius: 60
     });
     
-    // バイブ効果（手動操作時）
+    // バイブ効果（手動操作時）- より確実に動作
     if (navigator.vibrate) {
-      navigator.vibrate(20);
+      try {
+        navigator.vibrate(20);
+        // デバッグ用（開発時のみ）
+        // console.log('バイブ実行');
+      } catch (error) {
+        // バイブが失敗した場合のフォールバック
+        try {
+          navigator.vibrate(10);
+        } catch (e) {
+          // バイブ機能が完全に利用できない場合
+        }
+      }
     }
     
     // タッチ波紋を削除
@@ -176,24 +193,24 @@ class BabyMoamoa {
       const timeScale = this.time / 4000; // よりゆっくり
       const flowTime = this.time / 3500 + particle.flowPhase;
       
-      // 手前から後ろへの流れ（Y軸方向）
-      const flowY = Math.sin(flowTime) * radius * 0.6; // 流れを控えめに
+      // 手前から後ろへの流れ（Y軸方向）- より激しく
+      const flowY = Math.sin(flowTime) * radius * 1.2; // 流れを激しく
       
-      // 回転しながら流れる動き（軽量化）
-      const rotationAngle = particle.angle + timeScale * 0.3 + i * 0.005; // 計算を軽く
-      const spiralEffect = Math.sin(timeScale * 0.2 + i * 0.03) * 0.15; // 螺旋効果を軽く
+      // 回転しながら流れる動き（より激しく）
+      const rotationAngle = particle.angle + timeScale * 0.8 + i * 0.01; // 回転を激しく
+      const spiralEffect = Math.sin(timeScale * 0.4 + i * 0.05) * 0.4; // 螺旋効果を激しく
       
-      // 中央も含めて均等に分布
-      const baseR = radius * (0.2 + Math.random() * 1.4 + spiralEffect);
+      // 中央も含めて均等に分布 - より広範囲
+      const baseR = radius * (0.1 + Math.random() * 2.0 + spiralEffect);
       
       let targetX = cx + Math.cos(rotationAngle) * baseR;
       let targetY = cy + Math.sin(rotationAngle) * baseR + flowY;
       
-      // 音声反応（軽量化）
+      // 音声反応（より激しく）
       if (intensity > 0) {
-        const soundWave = Math.sin(this.time / 800 + i * 0.1) * intensity * 15; // 計算を軽く
+        const soundWave = Math.sin(this.time / 600 + i * 0.15) * intensity * 35; // より激しく
         targetX += soundWave;
-        targetY += soundWave * 0.5 + flowY * 0.2;
+        targetY += soundWave * 0.8 + flowY * 0.5; // 流れも強化
       }
       
       // タッチポイントを避ける（軽量化）
@@ -206,8 +223,8 @@ class BabyMoamoa {
         if (distance < avoidRadius) {
           const force = Math.pow((avoidRadius - distance) / avoidRadius, 2);
           const angle = Math.atan2(dy, dx);
-          targetX += Math.cos(angle) * force * 25; // 力を軽く
-          targetY += Math.sin(angle) * force * 25;
+          targetX += Math.cos(angle) * force * 50; // 避ける力を激しく
+          targetY += Math.sin(angle) * force * 50;
         }
       });
       
@@ -236,10 +253,10 @@ class BabyMoamoa {
       // グレー系の粒子
       ctx.beginPath();
       ctx.arc(particle.x, particle.y, particle.size, 0, 2*Math.PI);
-      ctx.fillStyle = `rgba(200,200,210,0.6)`; // グレー系
-      ctx.globalAlpha = 0.12 + 0.08 * Math.abs(Math.sin(this.time/1100 + i*0.4));
-      ctx.shadowColor = `rgba(180,180,190,0.14)`;
-      ctx.shadowBlur = 7;
+      ctx.fillStyle = `rgba(180,180,200,0.9)`; // グレー系を濃く
+      ctx.globalAlpha = 0.25 + 0.15 * Math.abs(Math.sin(this.time/1100 + i*0.4)); // 透明度を濃く
+      ctx.shadowColor = `rgba(160,160,180,0.3)`; // 影も濃く
+      ctx.shadowBlur = 8;
       ctx.fill();
       ctx.restore();
     });
