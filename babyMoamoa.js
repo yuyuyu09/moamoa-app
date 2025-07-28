@@ -27,7 +27,7 @@ class BabyMoamoa {
 
     // パープル粒子
     this.particles = [];
-    this.numParticles = 45; // 円周状に配置
+    this.numParticles = 40; // 3D円盤状に配置
     this.initParticles();
 
     this.resize();
@@ -65,23 +65,24 @@ class BabyMoamoa {
     this.particles = [];
     const cx = this.moamoa.cx;
     const cy = this.moamoa.cy;
-    const radius = this.moamoa.displayRadius;
+    const baseRadius = this.moamoa.displayRadius * 0.35;
     
     for (let i = 0; i < this.numParticles; i++) {
-      // 円周状に配置
-      const baseAngle = (i / this.numParticles) * 2 * Math.PI;
-      const r = radius * 0.8; // 円周上に配置
+      // 3D円盤状に配置
+      const angle = Math.random() * 2 * Math.PI; // ぐるっとランダム角度
+      const spread = 0.5 + Math.random() * 0.5; // 円盤のばらけ具合（0.5～1.0倍半径）
       
       this.particles.push({
-        x: cx + Math.cos(baseAngle) * r,
-        y: cy + Math.sin(baseAngle) * r,
-        targetX: cx + Math.cos(baseAngle) * r,
-        targetY: cy + Math.sin(baseAngle) * r,
+        x: cx + Math.cos(angle) * baseRadius * spread,
+        y: cy + Math.sin(angle) * baseRadius * spread,
+        targetX: cx + Math.cos(angle) * baseRadius * spread,
+        targetY: cy + Math.sin(angle) * baseRadius * spread,
         vx: 0,
         vy: 0,
-        size: 7, // 固定サイズ
-        angle: baseAngle,
-        baseRadius: r,
+        size: 7,
+        angle: angle,
+        baseRadius: baseRadius,
+        spread: spread,
         spring: 0.07 + Math.random() * 0.03,
         friction: 0.91 + Math.random() * 0.07,
         flowPhase: Math.random() * Math.PI * 2
@@ -197,14 +198,18 @@ class BabyMoamoa {
       const timeScale = this.time / 4000; // よりゆっくり
       const flowTime = this.time / 3500 + particle.flowPhase;
       
-      // シンプルな円周回転
-      const spinSpeed = 0.008; // 小さいほどゆっくり
-      const baseAngle = (i / this.numParticles) * 2 * Math.PI;
-      const angle = baseAngle + this.time * spinSpeed;
-      const r = radius * 0.8; // 円周上に固定
+      // 3D円盤回転
+      const spinSpeed = 0.013; // 3D回転速度
+      particle.angle += spinSpeed; // 角度を回す
       
-      let targetX = cx + Math.cos(angle) * r;
-      let targetY = cy + Math.sin(angle) * r;
+      // 3D座標（z）→2D投影
+      let x3d = Math.cos(particle.angle) * particle.baseRadius * particle.spread;
+      let y3d = Math.sin(particle.angle) * particle.baseRadius * particle.spread;
+      let z = Math.sin(particle.angle); // -1:奥, 0:側面, 1:手前
+      
+      // 2D画面へ投影（y軸を少し圧縮＝斜め視点感）
+      let targetX = cx + x3d;
+      let targetY = cy + y3d * 0.55;
       
       // 音声反応（より小さく）
       if (intensity > 0) {
@@ -250,17 +255,19 @@ class BabyMoamoa {
   drawParticles() {
     const ctx = this.ctx;
     this.particles.forEach((particle, i) => {
-      ctx.save();
-      // グレー系の粒子
-      // 固定サイズ
-      const dynamicSize = particle.size;
+      // 3D効果計算
+      let z = Math.sin(particle.angle); // -1:奥, 0:側面, 1:手前
       
+      // 手前ほど大きく・濃く
+      let scale = 1 + z * 0.5;
+      let alpha = 0.40 + z * 0.45;
+      
+      ctx.save();
       ctx.beginPath();
-      ctx.arc(particle.x, particle.y, dynamicSize, 0, 2*Math.PI);
-      ctx.fillStyle = `rgba(160,160,180,1.0)`; // さらに濃いグレー系
-      ctx.globalAlpha = 0.4 + 0.2 * Math.abs(Math.sin(this.time/1100 + i*0.4)); // さらに濃い透明度
-      ctx.shadowColor = `rgba(140,140,160,0.4)`; // さらに濃い影
-      ctx.shadowBlur = 10;
+      ctx.arc(particle.x, particle.y, particle.size * scale, 0, 2*Math.PI);
+      ctx.fillStyle = `rgba(180,180,210,${alpha})`;
+      ctx.shadowBlur = 10 * scale;
+      ctx.shadowColor = `rgba(140,140,170,${0.18 + z * 0.28})`;
       ctx.fill();
       ctx.restore();
     });
