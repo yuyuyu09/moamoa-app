@@ -13,9 +13,10 @@ class BabyMoamoa {
       baseRadius: 80,
       spring: 0.21,
       friction: 0.72,
-      color: [228, 220, 255] // より淡いパープル
+      color: [200, 200, 210] // グレー系
     };
     this.touchRipples = [];
+    this.touchPoints = []; // タッチポイント（避けるべき位置）
     this.isLongPress = false;
     this.longPressTimer = null;
     this.time = 0;
@@ -51,9 +52,12 @@ class BabyMoamoa {
     const cx = this.moamoa.cx;
     const cy = this.moamoa.cy;
     const radius = this.moamoa.displayRadius;
+    
     for (let i = 0; i < this.numParticles; i++) {
-      const angle = (Math.PI * 2 * i) / this.numParticles;
-      const r = radius * (0.8 + Math.random() * 0.4);
+      // 円全体にランダムに点在
+      const angle = Math.random() * Math.PI * 2;
+      const r = radius * Math.sqrt(Math.random()) * 0.9; // 中心に近いほど密度が高い
+      
       this.particles.push({
         x: cx + Math.cos(angle) * r,
         y: cy + Math.sin(angle) * r,
@@ -118,49 +122,19 @@ class BabyMoamoa {
       this.moamoa.vy *= 0.5;
     }
 
-    // タッチ波紋（パステルパープル）
+    // タッチ波紋（グレー系）
     for (const ripple of this.touchRipples) {
       const alpha = 0.09 * (1 - ripple.age/1.1);
       if(alpha<=0) continue;
       ctx.beginPath();
       ctx.arc(ripple.x, ripple.y, ripple.r, 0, 2*Math.PI);
-      ctx.fillStyle = `rgba(198,180,255,${alpha})`;
+      ctx.fillStyle = `rgba(180,180,190,${alpha})`;
       ctx.fill();
       ripple.r += 9; ripple.age += 0.022;
     }
     this.touchRipples = this.touchRipples.filter(r=>r.age<1.1);
 
-    // モワモワ多重グラデーション
-    const cx = this.moamoa.cx, cy = this.moamoa.cy, col = this.moamoa.color;
-    for(let i=3; i>=1; --i){
-      const r = this.moamoa.displayRadius*i*0.25+20;
-      const grad = ctx.createRadialGradient(cx,cy,r*0.45,cx,cy,r);
-      // 淡い青紫と白のなめらかグラデに
-      const hue = 252 + 7*Math.sin(this.time/1500+i*1.7);
-      const pastel = `hsl(${hue},52%,85%)`;
-      const alpha = 0.05+0.03*i+0.08*Math.sin(this.time/980+i);
-      grad.addColorStop(0,pastel);
-      grad.addColorStop(0.67,`rgba(224,214,255,${alpha})`);
-      grad.addColorStop(1,"rgba(250,250,255,0)");
-      ctx.beginPath();
-      ctx.arc(cx,cy,r,0,2*Math.PI);
-      ctx.globalAlpha = alpha;
-      ctx.fillStyle=grad;
-      ctx.filter = `blur(${8+2*i}px)`;
-      ctx.fill();
-      ctx.globalAlpha = 1.0;
-      ctx.filter = 'none';
-    }
-
-    // パープルメイン円
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(cx,cy,this.moamoa.displayRadius,0,2*Math.PI);
-    ctx.shadowColor = 'rgba(200,180,250,0.15)';
-    ctx.shadowBlur = 17;
-    ctx.fillStyle = `rgba(${col[0]},${col[1]},${col[2]},0.25)`;
-    ctx.fill();
-    ctx.restore();
+    // 背景の半透明円を削除 - 粒子のみで構成
 
     // 粒子描画
     this.updateParticles();
@@ -175,18 +149,69 @@ class BabyMoamoa {
       this.hasTouched = true;
       this.status.style.opacity = '0';
     }
+    
+    // タッチポイントを記録（避けるべき位置）
+    this.touchPoints.push({
+      x: px,
+      y: py,
+      age: 0,
+      radius: 60 // 避ける範囲の半径
+    });
+    
+    // バイブ効果（手動操作時）
+    if (navigator.vibrate) {
+      navigator.vibrate(20); // 20msの軽いバイブ
+    }
+    
     this.touchRipples.push({x:px,y:py,r:18,age:0});
     this.moamoa.cx += (px-this.moamoa.cx)*0.15;
     this.moamoa.cy += (py-this.moamoa.cy)*0.15;
-    this.updateParticleTargets(0.33);
+    this.updateParticleTargets(0.5); // 手動操作時は強度を上げる
   }
   updateParticleTargets(intensity = 0) {
     const cx = this.moamoa.cx, cy = this.moamoa.cy, radius = this.moamoa.displayRadius;
+    
+    // タッチポイントの年齢を更新
+    this.touchPoints.forEach(point => {
+      point.age += 0.02;
+    });
+    this.touchPoints = this.touchPoints.filter(point => point.age < 2.0); // 2秒で消滅
+    
     this.particles.forEach((particle, i) => {
-      const angle = particle.angle + this.time / 2600 + Math.sin(this.time / 1100 + i) * 0.08;
-      const r = radius * (0.85 + Math.sin(this.time/2300 + i*0.7) * 0.14) + intensity * 18;
-      particle.targetX = cx + Math.cos(angle) * r;
-      particle.targetY = cy + Math.sin(angle) * r;
+      // 常時動く基本の目標位置（より動的）
+      const baseAngle = particle.angle + this.time / 2000 + Math.sin(this.time / 800 + i) * 0.15;
+      const baseR = radius * Math.sqrt(Math.random()) * (0.7 + Math.sin(this.time/1500 + i*0.5) * 0.3);
+      
+      // ランダムな動きを追加
+      const randomX = Math.sin(this.time / 1200 + i * 0.7) * 20;
+      const randomY = Math.cos(this.time / 1400 + i * 0.9) * 20;
+      
+      let targetX = cx + Math.cos(baseAngle) * baseR + randomX;
+      let targetY = cy + Math.sin(baseAngle) * baseR + randomY;
+      
+      // 音声反応
+      if (intensity > 0) {
+        targetX += Math.sin(this.time / 500 + i) * intensity * 30;
+        targetY += Math.cos(this.time / 600 + i) * intensity * 30;
+      }
+      
+      // タッチポイントを避ける
+      this.touchPoints.forEach(point => {
+        const dx = targetX - point.x;
+        const dy = targetY - point.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const avoidRadius = point.radius * (1 - point.age / 2.0);
+        
+        if (distance < avoidRadius) {
+          const force = (avoidRadius - distance) / avoidRadius;
+          const angle = Math.atan2(dy, dx);
+          targetX += Math.cos(angle) * force * 50;
+          targetY += Math.sin(angle) * force * 50;
+        }
+      });
+      
+      particle.targetX = targetX;
+      particle.targetY = targetY;
     });
   }
   updateParticles() {
@@ -197,6 +222,11 @@ class BabyMoamoa {
       particle.vy += dy * particle.spring;
       particle.vx *= particle.friction;
       particle.vy *= particle.friction;
+      
+      // 常時動くための微細なランダム動きを追加
+      particle.vx += (Math.random() - 0.5) * 0.3;
+      particle.vy += (Math.random() - 0.5) * 0.3;
+      
       particle.x += particle.vx;
       particle.y += particle.vy;
     });
@@ -205,13 +235,12 @@ class BabyMoamoa {
     const ctx = this.ctx;
     this.particles.forEach((particle, i) => {
       ctx.save();
-      // パステルパープル＋グレー寄りも混ぜる
-      const hue = 252 + 8*Math.sin(this.time/1000 + i*0.207);
+      // グレー系の粒子
       ctx.beginPath();
       ctx.arc(particle.x, particle.y, particle.size, 0, 2*Math.PI);
-      ctx.fillStyle = `hsl(${hue}, 40%, 89%)`; // 極淡
+      ctx.fillStyle = `rgba(200,200,210,0.6)`; // グレー系
       ctx.globalAlpha = 0.12 + 0.08 * Math.abs(Math.sin(this.time/1100 + i*0.4));
-      ctx.shadowColor = `rgba(200,190,255,0.14)`;
+      ctx.shadowColor = `rgba(180,180,190,0.14)`;
       ctx.shadowBlur = 7;
       ctx.fill();
       ctx.restore();
@@ -221,9 +250,9 @@ class BabyMoamoa {
     this.longPressTimer = setTimeout(()=>{
       this.isLongPress = true;
       this.moamoa.color = [
-        180+Math.floor(Math.random()*35),  // 赤〜青紫の間
-        169+Math.floor(Math.random()*18),
-        240+Math.floor(Math.random()*25)
+        180+Math.floor(Math.random()*40),  // グレー系の範囲
+        180+Math.floor(Math.random()*40),
+        190+Math.floor(Math.random()*40)
       ];
       this.moamoa.displayRadius *= 1.19;
       this.touchRipples.push({x:e.clientX, y:e.clientY, r:38, age:0});
