@@ -43,15 +43,31 @@ class BabyMoamoa {
   }
   async setupMic() {
     try {
-      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      this.analyser = audioCtx.createAnalyser();
-      this.analyser.fftSize = 256; // 512から256に削減
+      // AudioContextの初期化を改善
+      this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      
+      // ユーザーインタラクション後にAudioContextを開始
+      const startAudio = async () => {
+        if (this.audioCtx.state === 'suspended') {
+          await this.audioCtx.resume();
+        }
+      };
+      
+      // タッチやクリックでAudioContextを開始
+      this.canvas.addEventListener('pointerdown', startAudio, { once: true });
+      
+      this.analyser = this.audioCtx.createAnalyser();
+      this.analyser.fftSize = 512;
       this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+      
       let stream = await navigator.mediaDevices.getUserMedia({audio:true});
-      let src = audioCtx.createMediaStreamSource(stream);
+      let src = this.audioCtx.createMediaStreamSource(stream);
       src.connect(this.analyser);
+      
       this.status.textContent = "音や声＋タッチ・スワイプ 両方でモワモワが動くよ！";
-    } catch {
+      console.log("マイク接続成功");
+    } catch (error) {
+      console.error("マイク接続エラー:", error);
       this.status.textContent = "マイク許可がありません（タッチ・スワイプのみ反応します）";
     }
   }
@@ -66,66 +82,80 @@ class BabyMoamoa {
     
     // 音声レベル取得
     let vol = 0;
-    if (this.analyser && this.dataArray) {
-      this.analyser.getByteFrequencyData(this.dataArray);
-      let sum = 0;
-      for(let x=0; x<this.dataArray.length; ++x) sum += this.dataArray[x];
-      vol = sum / this.dataArray.length / 255;
-      // モワモワに（バネ物理＋イージング）
-      const target = this.moamoa.baseRadius + vol*150;
-      const dy = target - this.moamoa.displayRadius;
-      this.moamoa.vy += dy * this.moamoa.spring;
-      this.moamoa.vy *= this.moamoa.friction;
-      this.moamoa.displayRadius += this.moamoa.vy;
+    if (this.analyser && this.dataArray && this.audioCtx && this.audioCtx.state === 'running') {
+      try {
+        this.analyser.getByteFrequencyData(this.dataArray);
+        let sum = 0;
+        for(let x=0; x<this.dataArray.length; ++x) sum += this.dataArray[x];
+        vol = sum / this.dataArray.length / 255;
+        
+        // 音声レベルを視覚的に表示（デバッグ用）
+        if (vol > 0.1) {
+          console.log("音声レベル:", vol.toFixed(3));
+        }
+        
+        // モワモワに（バネ物理＋イージング）
+        const target = this.moamoa.baseRadius + vol*150;
+        const dy = target - this.moamoa.displayRadius;
+        this.moamoa.vy += dy * this.moamoa.spring;
+        this.moamoa.vy *= this.moamoa.friction;
+        this.moamoa.displayRadius += this.moamoa.vy;
+      } catch (error) {
+        console.error("音声分析エラー:", error);
+        this.moamoa.displayRadius += (this.moamoa.baseRadius-this.moamoa.displayRadius)*0.07;
+        this.moamoa.vy *= 0.51;
+      }
     } else {
       this.moamoa.displayRadius += (this.moamoa.baseRadius-this.moamoa.displayRadius)*0.07;
       this.moamoa.vy *= 0.51;
     }
     
-    // タッチ波紋描画（最適化）
+    // タッチ波紋描画
     for (const ripple of this.touchRipples) {
+      ctx.save();
       const alpha = 0.24 * (1-ripple.age/1.1);
       if(alpha<=0) continue;
       ctx.beginPath();
       ctx.arc(ripple.x, ripple.y, ripple.r, 0, 2*Math.PI);
       ctx.fillStyle = `rgba(120,180,255,${alpha})`;
+      ctx.filter = `blur(2px)`;
       ctx.fill();
+      ctx.restore();
       ripple.r += 9; ripple.age += 0.022;
     }
     this.touchRipples = this.touchRipples.filter(r=>r.age<1.1);
 
-    // モワモワ多重グラデ（リッチ感強化）
+    // モワモワ多重グラデ
     const cx = this.moamoa.cx, cy = this.moamoa.cy, col = this.moamoa.color;
-    for(let i=4;i>=1;--i){
+    for(let i=6;i>=1;--i){
       ctx.save();
-      // 透明度や色を周期で少しずつ変化
-      const phase = this.time/700 + i*0.8;
-      const r = this.moamoa.displayRadius * i * 0.29 + 35;
-      const grad = ctx.createRadialGradient(cx,cy,r*0.32,cx,cy,r);
-      const alpha = 0.10+0.09*Math.abs(Math.sin(phase)) + 0.06*i;
+      const r = this.moamoa.displayRadius*i*0.32+38;
+      const grad = ctx.createRadialGradient(cx,cy,r*0.33,cx,cy,r);
+      const alpha = 0.10+0.04*i+0.15*Math.sin(this.time/830+i);
       grad.addColorStop(0,`rgba(${col[0]},${col[1]},${col[2]},${alpha})`);
-      grad.addColorStop(0.63,`rgba(${col[0]},${col[1]},${col[2]},0)`);
+      grad.addColorStop(0.68,`rgba(${col[0]},${col[1]},${col[2]},0.0)`);
       grad.addColorStop(1,"rgba(255,255,255,0)");
       ctx.globalCompositeOperation='lighter';
       ctx.beginPath();
       ctx.arc(cx,cy,r,0,2*Math.PI);
-      ctx.filter=`blur(${i*2.7+3}px)`; // 層ごとにブラー差を強調
-      ctx.fillStyle=grad;
+      ctx.fillStyle=grad; ctx.filter=`blur(${i*1.7+1}px)`;
       ctx.fill();
       ctx.globalCompositeOperation='source-over';
       ctx.restore();
     }
     
     // メイン円
+    ctx.save();
     ctx.beginPath();
     ctx.arc(cx, cy, this.moamoa.displayRadius, 0, 2*Math.PI);
     ctx.shadowColor = 'rgba(120,180,255,0.28)';
     ctx.shadowBlur = 26;
     ctx.fillStyle = `rgba(${col[0]},${col[1]},${col[2]},0.72)`;
     ctx.fill();
+    ctx.restore();
 
-    // 粒子（最適化）
-    const numParticles = 25; // 35から25に削減
+    // 粒子（モワモワ円周上に点を追加）
+    const numParticles = 35;
     const r = this.moamoa.displayRadius+16;
     for(let i=0;i<numParticles;++i){
       const ang = (2*Math.PI/numParticles)*i + this.time/2500 + Math.sin(i);
