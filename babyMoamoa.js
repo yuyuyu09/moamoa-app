@@ -5,12 +5,15 @@ class BabyMoamoa {
     this.status = document.getElementById('status');
     this.analyser = null;
     this.dataArray = null;
+    // 環境判別（横幅やUAチェックでも良い）
+    const isMobile = window.innerWidth < 600; // 例: 600px未満をモバイル判定
+    
     this.moamoa = {
       cx: window.innerWidth / 2,
       cy: window.innerHeight / 2,
-      displayRadius: Math.min(window.innerWidth, window.innerHeight) * 0.3, // スマホサイズに応じて調整
+      displayRadius: Math.min(window.innerWidth, window.innerHeight) * (isMobile ? 0.17 : 0.3), // モバイル用に調整
       vy: 0,
-      baseRadius: Math.min(window.innerWidth, window.innerHeight) * 0.3,
+      baseRadius: Math.min(window.innerWidth, window.innerHeight) * (isMobile ? 0.17 : 0.3), // モバイル用に調整
       spring: 0.09,     // もっと小さく
       friction: 0.85,   // もっと大きく
       color: [200, 200, 210] // グレー系
@@ -51,9 +54,11 @@ class BabyMoamoa {
     this.canvas.height = window.innerHeight;
     this.moamoa.cx = window.innerWidth / 2;
     this.moamoa.cy = window.innerHeight / 2;
+    // 環境判別（横幅やUAチェックでも良い）
+    const isMobile = window.innerWidth < 600; // 例: 600px未満をモバイル判定
     // スマホサイズに応じて半径を調整
-    this.moamoa.displayRadius = Math.min(window.innerWidth, window.innerHeight) * 0.3;
-    this.moamoa.baseRadius = Math.min(window.innerWidth, window.innerHeight) * 0.3;
+    this.moamoa.displayRadius = Math.min(window.innerWidth, window.innerHeight) * (isMobile ? 0.17 : 0.3);
+    this.moamoa.baseRadius = Math.min(window.innerWidth, window.innerHeight) * (isMobile ? 0.17 : 0.3);
     this.initParticles();
   }
   initParticles() {
