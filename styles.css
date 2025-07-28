@@ -1,7 +1,7 @@
 html,body {height:100%; margin:0; padding:0; box-sizing:border-box;}
 body {
   width:100vw; height:100vh; overflow:hidden;
-  background: #e8e9ed; /* より暗いグレーで明暗差を抑制 */
+  background: #d8d9dd; /* さらに濃いグレーで背景を強調 */
   /* または */
   /* background: #f4f3f8;     // ややパープル寄り */
   /* background: #f0f1f5;     // やや青グレイッシュ */

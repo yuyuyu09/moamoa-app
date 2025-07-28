@@ -193,24 +193,27 @@ class BabyMoamoa {
       const timeScale = this.time / 4000; // よりゆっくり
       const flowTime = this.time / 3500 + particle.flowPhase;
       
-      // 手前から後ろへの流れ（Y軸方向）- より激しく
-      const flowY = Math.sin(flowTime) * radius * 1.2; // 流れを激しく
+      // 全体的に散らばった動き（中央→外、外→中央の流れを削除）
+      const randomTime = this.time / 2000 + particle.flowPhase;
       
-      // 回転しながら流れる動き（より激しく）
-      const rotationAngle = particle.angle + timeScale * 0.8 + i * 0.01; // 回転を激しく
-      const spiralEffect = Math.sin(timeScale * 0.4 + i * 0.05) * 0.4; // 螺旋効果を激しく
+      // ランダムな方向への動き
+      const randomAngle = particle.angle + timeScale * 0.6 + i * 0.02;
+      const randomRadius = radius * (0.2 + Math.random() * 1.8);
       
-      // 中央も含めて均等に分布 - より広範囲
-      const baseR = radius * (0.1 + Math.random() * 2.0 + spiralEffect);
+      // 複数の正弦波を組み合わせて散らばった動き
+      const wave1 = Math.sin(randomTime * 0.8 + i * 0.1) * radius * 0.8;
+      const wave2 = Math.cos(randomTime * 1.2 + i * 0.15) * radius * 0.6;
+      const wave3 = Math.sin(randomTime * 0.5 + i * 0.08) * radius * 0.4;
       
-      let targetX = cx + Math.cos(rotationAngle) * baseR;
-      let targetY = cy + Math.sin(rotationAngle) * baseR + flowY;
+      let targetX = cx + Math.cos(randomAngle) * randomRadius + wave1 + wave2;
+      let targetY = cy + Math.sin(randomAngle) * randomRadius + wave2 + wave3;
       
-      // 音声反応（より激しく）
+      // 音声反応（散らばった動きに合わせて）
       if (intensity > 0) {
-        const soundWave = Math.sin(this.time / 600 + i * 0.15) * intensity * 35; // より激しく
-        targetX += soundWave;
-        targetY += soundWave * 0.8 + flowY * 0.5; // 流れも強化
+        const soundWave1 = Math.sin(this.time / 600 + i * 0.15) * intensity * 40;
+        const soundWave2 = Math.cos(this.time / 800 + i * 0.2) * intensity * 30;
+        targetX += soundWave1 + soundWave2;
+        targetY += soundWave2 + soundWave1 * 0.7;
       }
       
       // タッチポイントを避ける（軽量化）
@@ -253,10 +256,10 @@ class BabyMoamoa {
       // グレー系の粒子
       ctx.beginPath();
       ctx.arc(particle.x, particle.y, particle.size, 0, 2*Math.PI);
-      ctx.fillStyle = `rgba(180,180,200,0.9)`; // グレー系を濃く
-      ctx.globalAlpha = 0.25 + 0.15 * Math.abs(Math.sin(this.time/1100 + i*0.4)); // 透明度を濃く
-      ctx.shadowColor = `rgba(160,160,180,0.3)`; // 影も濃く
-      ctx.shadowBlur = 8;
+      ctx.fillStyle = `rgba(160,160,180,1.0)`; // さらに濃いグレー系
+      ctx.globalAlpha = 0.4 + 0.2 * Math.abs(Math.sin(this.time/1100 + i*0.4)); // さらに濃い透明度
+      ctx.shadowColor = `rgba(140,140,160,0.4)`; // さらに濃い影
+      ctx.shadowBlur = 10;
       ctx.fill();
       ctx.restore();
     });
