@@ -24,7 +24,7 @@ class BabyMoamoa {
 
     // パープル粒子
     this.particles = [];
-    this.numParticles = 55; // 50〜60粒ぐらい
+    this.numParticles = 45; // 円周状に配置
     this.initParticles();
 
     this.resize();
@@ -63,24 +63,23 @@ class BabyMoamoa {
     const radius = this.moamoa.displayRadius;
     
     for (let i = 0; i < this.numParticles; i++) {
-      // 手前から後ろへの流れを考慮した初期配置
-      const angle = Math.random() * Math.PI * 2;
-      // 中央も含めてより均等に分布（中央の空きを防ぐ）
-      const r = radius * (0.1 + Math.random() * 1.8); // 中央から外側まで均等
+      // 円周状に配置
+      const baseAngle = (i / this.numParticles) * 2 * Math.PI;
+      const r = radius * 0.8; // 円周上に配置
       
       this.particles.push({
-        x: cx + Math.cos(angle) * r,
-        y: cy + Math.sin(angle) * r,
-        targetX: cx + Math.cos(angle) * r,
-        targetY: cy + Math.sin(angle) * r,
+        x: cx + Math.cos(baseAngle) * r,
+        y: cy + Math.sin(baseAngle) * r,
+        targetX: cx + Math.cos(baseAngle) * r,
+        targetY: cy + Math.sin(baseAngle) * r,
         vx: 0,
         vy: 0,
-        size: 3.0 + Math.random() * 8.0, // 粒子の大きさに大きなばらつき
-        angle: angle,
+        size: 7, // 固定サイズ
+        angle: baseAngle,
         baseRadius: r,
-        spring: 0.07 + Math.random() * 0.03, // さらに摩擦を上げる
-        friction: 0.91 + Math.random() * 0.07, // さらに摩擦を上げる
-        flowPhase: Math.random() * Math.PI * 2 // 流れの位相
+        spring: 0.07 + Math.random() * 0.03,
+        friction: 0.91 + Math.random() * 0.07,
+        flowPhase: Math.random() * Math.PI * 2
       });
     }
   }
@@ -193,19 +192,14 @@ class BabyMoamoa {
       const timeScale = this.time / 4000; // よりゆっくり
       const flowTime = this.time / 3500 + particle.flowPhase;
       
-      // 本当にゆったりとした円の回転
-      const rotationTime = this.time / 20000; // 非常にゆったりとした回転
+      // シンプルな円周回転
+      const spinSpeed = 0.008; // 小さいほどゆっくり
+      const baseAngle = (i / this.numParticles) * 2 * Math.PI;
+      const angle = baseAngle + this.time * spinSpeed;
+      const r = radius * 0.8; // 円周上に固定
       
-      // 円周に沿ったゆったりとした回転動き
-      const rotationAngle = particle.angle + rotationTime * 0.3 + i * 0.0005; // 非常にゆったり
-      const baseRadius = radius * (0.6 + Math.random() * 0.8); // 円の範囲内に制限
-      
-      // 非常に小さな揺らぎ（さらに小さく）
-      const wobble1 = Math.sin(rotationTime * 0.07 + i * 0.01) * radius * 0.01; // さらに小さく
-      const wobble2 = Math.cos(rotationTime * 0.12 + i * 0.012) * radius * 0.008; // さらに小さく
-      
-      let targetX = cx + Math.cos(rotationAngle) * baseRadius + wobble1;
-      let targetY = cy + Math.sin(rotationAngle) * baseRadius + wobble2;
+      let targetX = cx + Math.cos(angle) * r;
+      let targetY = cy + Math.sin(angle) * r;
       
       // 音声反応（より小さく）
       if (intensity > 0) {
@@ -253,9 +247,8 @@ class BabyMoamoa {
     this.particles.forEach((particle, i) => {
       ctx.save();
       // グレー系の粒子
-      // 粒子の大きさを時間とともに非常に静かに変化させる
-      const sizeVariation = Math.sin(this.time/10000 + i*0.05) * 0.4; // 非常に静か
-      const dynamicSize = Math.max(1.5, particle.size + sizeVariation);
+      // 固定サイズ
+      const dynamicSize = particle.size;
       
       ctx.beginPath();
       ctx.arc(particle.x, particle.y, dynamicSize, 0, 2*Math.PI);
