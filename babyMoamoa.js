@@ -254,23 +254,47 @@ class BabyMoamoa {
   }
   drawParticles() {
     const ctx = this.ctx;
-    this.particles.forEach((particle, i) => {
-      // 3D効果計算
-      let z = Math.sin(particle.angle); // -1:奥, 0:側面, 1:手前
+    const cx = this.moamoa.cx;
+    const cy = this.moamoa.cy;
+    const baseRadius = this.moamoa.displayRadius * 0.35;
+    
+    // 粒ごとに角度・3D座標を計算
+    let renderList = [];
+    for (let particle of this.particles) {
+      // 3D座標（z）→2D投影
+      let x3d = Math.cos(particle.angle) * baseRadius * particle.spread;
+      let y3d = Math.sin(particle.angle) * baseRadius * particle.spread;
+      let z = Math.sin(particle.angle); // -1:奥・0:側面・1:手前
       
-      // 手前ほど大きく・濃く
-      let scale = 1 + z * 0.5;
-      let alpha = 0.40 + z * 0.45;
+      // 投影
+      let scale = 1 + z * 0.45;
+      let px = cx + x3d;
+      let py = cy + y3d * 0.54;
       
+      renderList.push({
+        z: z,
+        x: px,
+        y: py,
+        scale: scale,
+        alpha: 0.37 + z * 0.43,
+        shadow: 0.08 + z * 0.25,
+      });
+    }
+    
+    // z値（奥行き）で手前から奥になるよう配列をソート
+    renderList.sort((a, b) => a.z - b.z);
+    
+    // 描画
+    for (let o of renderList) {
       ctx.save();
       ctx.beginPath();
-      ctx.arc(particle.x, particle.y, particle.size * scale, 0, 2*Math.PI);
-      ctx.fillStyle = `rgba(180,180,210,${alpha})`;
-      ctx.shadowBlur = 10 * scale;
-      ctx.shadowColor = `rgba(140,140,170,${0.18 + z * 0.28})`;
+      ctx.arc(o.x, o.y, 7 * o.scale, 0, 2 * Math.PI);
+      ctx.fillStyle = `rgba(180,180,210,${o.alpha})`;
+      ctx.shadowBlur = 13 * o.scale;
+      ctx.shadowColor = `rgba(140,140,170,${o.shadow})`;
       ctx.fill();
       ctx.restore();
-    });
+    }
   }
   startLongPress(e) {
     this.longPressTimer = setTimeout(()=>{
