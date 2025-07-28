@@ -54,9 +54,9 @@ class BabyMoamoa {
     const radius = this.moamoa.displayRadius;
     
     for (let i = 0; i < this.numParticles; i++) {
-      // 円全体に均等に点在（円周上に固まらないように）
+      // より広い範囲に散らばる
       const angle = Math.random() * Math.PI * 2;
-      const r = radius * Math.random() * 0.8; // ランダムな距離で均等分布
+      const r = radius * (0.2 + Math.random() * 1.5); // より広い範囲に分布
       
       this.particles.push({
         x: cx + Math.cos(angle) * r,
@@ -167,25 +167,25 @@ class BabyMoamoa {
     this.touchPoints = this.touchPoints.filter(point => point.age < 2.0);
     
     this.particles.forEach((particle, i) => {
-      // 円全体に均等に分布するように目標位置を設定
-      const timeScale = this.time / 4000; // よりゆっくり
-      const particlePhase = i * 0.05; // より小さな位相差
+      // 気持ちいい回転する動き
+      const timeScale = this.time / 2000; // より速い回転
+      const particlePhase = i * 0.02; // より小さな位相差で滑らかに
       
-      // より控えめな波の動き
-      const wave1 = Math.sin(timeScale + particlePhase) * 0.2;
-      const wave2 = Math.cos(timeScale * 0.8 + particlePhase * 1.1) * 0.15;
+      // 正面から後ろへの回転感
+      const rotationAngle = particle.angle + timeScale + particlePhase;
+      const spiralEffect = Math.sin(timeScale * 0.5 + i * 0.1) * 0.3; // 螺旋効果
       
-      const baseAngle = particle.angle + wave1 + wave2;
-      const baseR = radius * (0.3 + Math.random() * 0.5); // より広い範囲に分布
+      // より広い範囲で回転
+      const baseR = radius * (0.3 + Math.random() * 1.2 + spiralEffect);
       
-      let targetX = cx + Math.cos(baseAngle) * baseR;
-      let targetY = cy + Math.sin(baseAngle) * baseR;
+      let targetX = cx + Math.cos(rotationAngle) * baseR;
+      let targetY = cy + Math.sin(rotationAngle) * baseR;
       
-      // 音声反応（より控えめに）
+      // 音声反応（より気持ちよく）
       if (intensity > 0) {
-        const soundWave = Math.sin(this.time / 1000 + i * 0.3) * intensity * 10;
+        const soundWave = Math.sin(this.time / 600 + i * 0.2) * intensity * 20;
         targetX += soundWave;
-        targetY += soundWave * 0.5;
+        targetY += soundWave * 0.8;
       }
       
       // タッチポイントを避ける（より滑らかに）
@@ -198,8 +198,8 @@ class BabyMoamoa {
         if (distance < avoidRadius) {
           const force = Math.pow((avoidRadius - distance) / avoidRadius, 2);
           const angle = Math.atan2(dy, dx);
-          targetX += Math.cos(angle) * force * 25;
-          targetY += Math.sin(angle) * force * 25;
+          targetX += Math.cos(angle) * force * 30;
+          targetY += Math.sin(angle) * force * 30;
         }
       });
       
